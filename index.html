@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>百度搜索框</title>
+	<link rel="stylesheet" type="text/css" href="style/bootstrap.min.css">
+	<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/vue.js"></script>
+	<script type="text/javascript" src="https://cdn.bootcss.com/vue-resource/1.5.0/vue-resource.min.js"></script>
+	<style type="text/css">
+		.size{
+			width: 300px;
+			margin-top: 20px;
+		}
+		.choose{
+			background: #ccc;
+		}
+	</style>
+	<script type="text/javascript">
+		window.onload = function(){
+			new Vue({
+				el: '.container',
+				data: {
+					url: 'https://www.baidu.com/img/bd_logo1.png',
+					whether: true,
+					text: '',
+					input: '',
+					hintlist: [],
+					now: -1,
+				},
+				methods: {
+					getHints: function(e){
+						if(e.keyCode == 38 || e.keyCode == 40){
+							//这里执行return是为了按上键或下键切换备选项的时候，只在输入框中显示该选项，不再调用接口刷新备选列表了。直接return则这个方法剩下的内容都不会执行。
+							return;
+						}
+						if(e.keyCode == 13){
+							//如果这里点击了回车，应该跳转到百度的搜索结果页面
+							window.open('https://www.baidu.com/s?wd=' + this.text);
+							this.text = '';
+							this.now = -1;
+						}
+						this.now = -1;
+						this.input = this.text;
+						this.$http.jsonp('https://sp0.baidu.com/5a1Fazu8AA54nxGko9WTAnF6hhy/su',{
+							params: {
+					          wd:this.text
+					        },
+					        jsonp:'cb'
+					    }).then(function(res){
+							this.hintlist = res.data.s;
+						}, function(res){
+							console.log(res);
+						});
+					},
+					changeDown: function(){
+						this.now++;
+						if(this.now == this.hintlist.length){
+							this.text = this.input;
+							this.now = -1;
+						}else{
+							this.text = this.hintlist[this.now];
+						}
+					},
+					changeUp:function(){
+						this.now--;
+						if(this.now == -2 ){
+							this.text = this.input;
+							this.now = this.hintlist.length;
+						}else if(this.now == -1){
+							this.text = this.input;
+						}else{
+							this.text = this.hintlist[this.now];
+						}
+					}
+				}
+			});
+		};
+		//https://sug.so.360.cn/suggest?callback=suggest_so&encodein=utf-8&encodeout=utf-8&format=json&fields=word&word=a
+	</script>
+</head>
+<body>
+<div class="container text-center">
+	<img :src="url" alt="baidulogo" :class="{size: whether}">
+	<br>
+	<input class="form-control" v-model="text" @keyup="getHints($event)" @keydown.down="changeDown()" @keydown.up.prevent="changeUp()"></input>
+	<!-- 这里的prevent用于阻止按上方向键导致的默认事件：光标前移 -->
+	<ul class="list-group text-left">
+		<li v-for="(value,index) in hintlist" :class="{choose:index == now}" class="list-group-item">{{value}}</li>
+	</ul>
+</div>
+</body>
+</html>
